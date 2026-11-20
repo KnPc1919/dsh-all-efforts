@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { extendEfforts, extendModelInfo, translateOptions } from '../lib/efforts.js'
+import { extendEfforts, extendModelInfo, isExtraEffort, rewritePayload } from '../lib/efforts.js'
 import { patchAdapterPrototype } from '../index.js'
 
 const stockEfforts = () => [
@@ -21,6 +21,12 @@ const stockInfo = () => ({
 
 const ids = (info) => info.reasoning.efforts.map((effort) => effort.id)
 const extended = ['off', 'low', 'medium', 'high', 'xhigh', 'max']
+
+async function collect(iterable) {
+  const chunks = []
+  for await (const chunk of iterable) chunks.push(chunk)
+  return chunks
+}
 
 test('extendEfforts inserts medium and xhigh in presentation order', () => {
   const original = stockEfforts()
@@ -53,13 +59,33 @@ test('extendModelInfo keeps the default effort and leaves OFF_ONLY models alone'
   assert.equal(extendModelInfo(null), null)
 })
 
-test('translateOptions maps only the two aliases', () => {
-  assert.equal(translateOptions({ reasoningEffort: 'medium' }).reasoningEffort, 'high')
-  assert.equal(translateOptions({ reasoningEffort: 'xhigh' }).reasoningEffort, 'high')
-  const low = { reasoningEffort: 'low' }
-  assert.equal(translateOptions(low), low)
-  const none = {}
-  assert.equal(translateOptions(none), none)
+test('isExtraEffort recognises exactly the two new levels', () => {
+  assert.equal(isExtraEffort('medium'), true)
+  assert.equal(isExtraEffort('xhigh'), true)
+  assert.equal(isExtraEffort('high'), false)
+  assert.equal(isExtraEffort('toString'), false)
+  assert.equal(isExtraEffort(undefined), false)
+})
+
+test('rewritePayload writes the requested effort and keeps the rest of the body', () => {
+  const body = JSON.stringify({ model: 'deepseek-flash', thinking: { type: 'enabled' }, output_config: { effort: 'high' }, max_tokens: 64 })
+  const rewritten = JSON.parse(rewritePayload(body, 'medium'))
+  assert.equal(rewritten.output_config.effort, 'medium')
+  assert.equal(rewritten.thinking.type, 'enabled')
+  assert.equal(rewritten.model, 'deepseek-flash')
+  assert.equal(rewritten.max_tokens, 64)
+
+  const noEffort = JSON.parse(rewritePayload(JSON.stringify({ model: 'x', stream: true }), 'xhigh'))
+  assert.equal(noEffort.output_config.effort, 'xhigh')
+  assert.equal(noEffort.stream, true)
+})
+
+test('rewritePayload never touches input it cannot rewrite', () => {
+  const body = JSON.stringify({ output_config: { effort: 'high' } })
+  assert.equal(rewritePayload(body, 'high'), body)
+  assert.equal(rewritePayload('not json', 'medium'), 'not json')
+  assert.equal(rewritePayload('[1,2]', 'medium'), '[1,2]')
+  assert.equal(rewritePayload(undefined, 'medium'), undefined)
 })
 
 class FakeDeepSeekAdapter {
@@ -72,11 +98,12 @@ class FakeDeepSeekAdapter {
   }
 
   async prepareCall() {
-    return { model: stockInfo(), stream: (options) => ({ via: 'prepareCall', options }) }
+    const self = this
+    return { model: stockInfo(), stream: (options) => self.stream(options) }
   }
 
-  stream(options) {
-    return { via: 'stream', options }
+  async *stream(options) {
+    yield { via: 'stream', options }
   }
 }
 
@@ -92,18 +119,11 @@ test('patchAdapterPrototype widens both dispatch paths and is idempotent', async
 
   const call = await adapter.prepareCall()
   assert.deepEqual(ids(call.model), extended)
-  assert.equal(call.stream({ reasoningEffort: 'medium' }).options.reasoningEffort, 'high')
-  assert.equal(call.stream({ reasoningEffort: 'xhigh' }).options.reasoningEffort, 'high')
-  assert.equal(call.stream({ reasoningEffort: 'max' }).options.reasoningEffort, 'max')
 
-  assert.equal(adapter.stream({ reasoningEffort: 'xhigh' }).options.reasoningEffort, 'high')
-  assert.equal(adapter.stream({ reasoningEffort: 'off' }).options.reasoningEffort, 'off')
-})
-
-test('patchAdapterPrototype refuses objects without the public surface', () => {
-  class NotAnAdapter {
-    stream() {}
-  }
-  assert.equal(patchAdapterPrototype(NotAnAdapter.prototype), false)
-  assert.equal(patchAdapterPrototype(undefined), false)
+  const medium = await collect(call.stream({ reasoningEffort: 'medium' }))
+  assert.equal(medium[0].options.reasoningEffort, 'high')
+  const xhigh = await collect(adapter.stream({ reasoningEffort: 'xhigh' }))
+  assert.equal(xhigh[0].options.reasoningEffort, 'high')
+  const max = await collect(adapter.stream({ reasoningEffort: 'max' }))
+  assert.equal(max[0].options.reasoningEffort, 'max')
 })

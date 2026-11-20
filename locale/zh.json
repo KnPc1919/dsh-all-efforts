@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "DeepSeek 全档位推理强度",
-    "description": "为 DeepSeek 模型补回 Medium 与 XHigh 两档推理强度，让强度选择器提供 关闭 / 低 / 中 / 高 / 极高 / 最高 六档。"
+    "description": "为 DeepSeek 模型补回 Medium 与 XHigh 两档推理强度，让强度选择器提供 关闭 / 低 / 中 / 高 / 极高 / 最高 六档；Medium 与 XHigh 会原样发送给 DeepSeek。"
   }
 }

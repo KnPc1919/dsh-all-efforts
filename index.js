@@ -14,11 +14,16 @@
  *   stream(options)                       -> async iterable of chunks
  *   listModels(provider)                  -> catalog entries
  *
+ * Medium and XHigh are dispatched verbatim: the stock serializer only accepts
+ * off/low/high/max, so the call is dispatched with a legal placeholder and the
+ * outgoing request body is rewritten to the requested level (see lib/wire.js).
+ *
  * Each wrapper is idempotent and feature-detected: an adapter whose shape no
  * longer matches is left alone, and a missing registry only produces one log
  * line instead of a startup failure.
  */
-import { extendModelInfo, translateOptions } from './lib/efforts.js'
+import { extendModelInfo } from './lib/efforts.js'
+import { dispatchEffort, installWireRewrite } from './lib/wire.js'
 
 export const name = 'dsh-all-efforts'
 export const inject = ['llm']
@@ -50,9 +55,10 @@ function isDeepSeekAdapter(adapter) {
 
 /**
  * Wrap one DeepSeek adapter prototype. Exported for tests; the second call on
- * the same prototype is a no-op.
+ * the same prototype is a no-op. `log` is optional and only used to report a
+ * rejected effort level.
  */
-export function patchAdapterPrototype(proto) {
+export function patchAdapterPrototype(proto, log = () => {}) {
   if (!proto || proto[PATCHED]) return false
   const original = {
     resolveModel: proto.resolveModel,
@@ -66,6 +72,11 @@ export function patchAdapterPrototype(proto) {
     || typeof original.stream !== 'function'
   ) {
     return false
+  }
+
+  const onFallback = (requested, error) => {
+    const reason = error?.message ?? String(error)
+    log('warn', `DeepSeek rejected reasoning effort "${requested}"; retried with "${WIRE_FALLBACK[requested] ?? 'high'}" (${reason})`)
   }
 
   Object.defineProperty(proto, PATCHED, { value: original, enumerable: false, configurable: true })
@@ -87,15 +98,18 @@ export function patchAdapterPrototype(proto) {
     const model = extendModelInfo(call.model)
     const inner = call.stream
     if (typeof inner !== 'function') return { ...call, model }
-    return { ...call, model, stream: (options) => inner.call(call, translateOptions(options)) }
+    return { ...call, model, stream: (options) => dispatchEffort(inner, call, options, onFallback) }
   }
 
   proto.stream = function streamWithExtraEfforts(options) {
-    return original.stream.call(this, translateOptions(options))
+    return dispatchEffort(original.stream, this, options, onFallback)
   }
 
   return true
 }
+
+/** Alias table mirrored for the warning message only. */
+const WIRE_FALLBACK = Object.freeze({ medium: 'high', xhigh: 'high' })
 
 export function apply(ctx) {
   const log = createLogger(ctx)
@@ -104,6 +118,8 @@ export function apply(ctx) {
     log('warn', 'llm adapter registry unavailable; DeepSeek keeps its stock effort levels')
     return
   }
+
+  installWireRewrite()
 
   const seen = new WeakSet()
   const scan = () => {
@@ -114,7 +130,7 @@ export function apply(ctx) {
       const proto = Object.getPrototypeOf(adapter)
       if (!proto || seen.has(proto)) continue
       seen.add(proto)
-      if (patchAdapterPrototype(proto)) patched += 1
+      if (patchAdapterPrototype(proto, log)) patched += 1
     }
     if (patched > 0) log('info', `extended DeepSeek reasoning efforts on ${patched} adapter(s)`)
     return patched

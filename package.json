@@ -1,7 +1,7 @@
 {
   "name": "dsh-all-efforts",
-  "version": "0.1.0",
-  "description": "Adds the Medium and XHigh reasoning-effort levels to DeepSeek models in DeepSeek Harness (DSH), matching other DeepSeek agents.",
+  "version": "0.2.0",
+  "description": "Adds the Medium and XHigh reasoning-effort levels to DeepSeek models in DeepSeek Harness (DSH) and sends them to DeepSeek verbatim, matching other DeepSeek agents.",
   "keywords": [
     "dsh",
     "dsh-plugin",

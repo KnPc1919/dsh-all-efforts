@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "All Efforts for DeepSeek",
-    "description": "Restores the Medium and XHigh reasoning-effort levels for DeepSeek models, so the effort control offers Off, Low, Medium, High, XHigh and Max."
+    "description": "Restores the Medium and XHigh reasoning-effort levels for DeepSeek models, so the effort control offers Off, Low, Medium, High, XHigh and Max. Medium and XHigh are sent to DeepSeek verbatim."
   }
 }
