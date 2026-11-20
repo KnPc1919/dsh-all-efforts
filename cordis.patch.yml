@@ -1,0 +1,5 @@
+# Bundle layer for dsh-all-efforts: one host plugin that restores the Medium
+# and XHigh reasoning-effort levels for every DeepSeek model in DSH.
+- insert:
+    - id: dsh-all-efforts
+      name: dsh-all-efforts

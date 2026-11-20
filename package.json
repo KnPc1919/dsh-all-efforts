@@ -1,0 +1,49 @@
+{
+  "name": "dsh-all-efforts",
+  "version": "0.1.0",
+  "description": "Adds the Medium and XHigh reasoning-effort levels to DeepSeek models in DeepSeek Harness (DSH), matching other DeepSeek agents.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "deepseek",
+    "reasoning-effort"
+  ],
+  "license": "MIT",
+  "author": "KnPc1919",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KnPc1919/dsh-all-efforts.git"
+  },
+  "homepage": "https://github.com/KnPc1919/dsh-all-efforts#readme",
+  "bugs": {
+    "url": "https://github.com/KnPc1919/dsh-all-efforts/issues"
+  },
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "locale",
+    "cordis.patch.yml",
+    "README.md",
+    "README_CN.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "dsh": ">=0.2.0 <0.3.0"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
