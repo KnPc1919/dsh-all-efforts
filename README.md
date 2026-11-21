@@ -1,3 +1,5 @@
+*This plugin is developed by DSH. It may contain bugs or become incompatible with future versions. No warranty is provided. Please report issues only when they involve bugs. We will not implement additional features. If you have feature requests or other ideas, feel free to fork the project.*
+
 # dsh-all-efforts
 
 **Add the Medium and XHigh reasoning-effort levels to DeepSeek models in DeepSeek Harness (DSH)** — so the effort control offers the same six levels as other DeepSeek agents: `Off · Low · Medium · High · XHigh · Max`, and the level you pick is the level sent to DeepSeek.
@@ -32,9 +34,8 @@ dsh plugin --profile desktop add github:KnPc1919/dsh-all-efforts
 
 Restart DSH after installing. Open the model menu for a DeepSeek model and the effort control now lists:
 
-| | | | | | |
-|---|---|---|---|---|---|
 | Off | Low | Medium | High | XHigh | Max |
+|---|---|---|---|---|---|
 
 Verify that the bundle layer was applied without booting:
 
@@ -65,9 +66,9 @@ DSH's DeepSeek serializer validates the requested level against its own four val
 |---|---|---|
 | Off | thinking disabled | no reasoning |
 | Low | `low` | low effort |
-| **Medium** | **`medium`** | your chosen level, verbatim |
+| **Medium** | **`medium`** | **true `medium`** effort, not other efforts |
 | High | `high` | high effort |
-| **XHigh** | **`xhigh`** | your chosen level, verbatim |
+| **XHigh** | **`xhigh`** | **true `xhigh`** effort, not other efforts |
 | Max | `max` | max effort |
 
 **Safety net.** DeepSeek's public documentation only promises `low`, `high`, and `max` on the wire and describes Medium/XHigh as aliases of High in its own table. If an endpoint rejects the literal value (a 4xx error before any output has streamed), the plugin retries that one request with the documented mapping (`medium → high`, `xhigh → high`), logs a single warning, and keeps the conversation alive — it never leaves you worse off than the stock adapter. The mapping lives in one table (`WIRE_ALIASES` in [`lib/efforts.js`](lib/efforts.js)).

@@ -1,3 +1,5 @@
+*此插件由 DSH 开发，未来版本中可能出现 Bug 或兼容性问题。本插件不提供任何形式的担保。请仅在发现实际 Bug 时提交 Issue。我们不会添加任何新功能。如果你有其他功能需求或想法，欢迎自行 Fork 本项目。*
+
 # dsh-all-efforts
 
 **为 DeepSeek Harness（DSH）中的 DeepSeek 模型补回 Medium 与 XHigh 两档推理强度**，让强度选择器与其他 DeepSeek 智能体一致：`关闭 · 低 · 中 · 高 · 极高 · 最高`，并且你选的那一档就是真正发给 DeepSeek 的档位。
@@ -32,9 +34,8 @@ dsh plugin --profile desktop add github:KnPc1919/dsh-all-efforts
 
 安装后重启 DSH。打开 DeepSeek 模型的模型菜单，强度选择器会变成：
 
-| | | | | | |
-|---|---|---|---|---|---|
 | 关闭 | 低 | 中 | 高 | 极高 | 最高 |
+|---|---|---|---|---|---|
 
 不启动应用也可以确认 bundle 层已生效：
 
@@ -65,9 +66,9 @@ DSH 的 DeepSeek 序列化器会用自己的四个值校验请求强度，并把
 |---|---|---|
 | 关闭 | 关闭思考 | 不推理 |
 | 低 | `low` | 低强度 |
-| **中** | **`medium`** | 原样发送你选择的档位 |
+| **中** | **`medium`** | **真正的 `medium`** 档位，并非其他强度 |
 | 高 | `high` | 高强度 |
-| **极高** | **`xhigh`** | 原样发送你选择的档位 |
+| **极高** | **`xhigh`** | **真正的 `xhigh`** 档位，并非其他强度 |
 | 最高 | `max` | 最高强度 |
 
 **兜底机制。** DeepSeek 公开文档只承诺传输层接受 `low`、`high`、`max`，并在自己的表里把 Medium/XHigh 描述为 High 的别名。如果某个端点拒绝了字面值（在任何输出开始前的 4xx 错误），插件会把这一次请求按官方映射（`medium → high`、`xhigh → high`）重试一次，输出一行警告，并让对话继续——绝不会比原生适配器更糟。映射只集中在 [`lib/efforts.js`](lib/efforts.js) 的 `WIRE_ALIASES` 一张表里。
